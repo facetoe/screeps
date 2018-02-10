@@ -73,8 +73,6 @@ class Worker extends CreepBase {
         let r = this.creep.moveTo(source);
         if (r === OK) {
             this.changeState(this.state.FILLING);
-        } else {
-            console.log("Spawn result: " + r)
         }
     };
 
@@ -112,6 +110,10 @@ class Worker extends CreepBase {
 
 class Harvester extends Worker {
 
+    constructor(creep) {
+        super(creep)
+    }
+
     static spawnCreep(spawn) {
         return spawn.createCreep([MOVE, MOVE, WORK, CARRY], CreepType.HARVESTER + Game.time, {type: CreepType.HARVESTER})
     }
@@ -145,7 +147,8 @@ class Harvester extends Worker {
         }
 
         let spawn = Game.getObjectById(this.creep.memory.spawnId);
-        if (spawn.energy < spawn.energyCapacity) {
+        let spawnEnergyPercent = (spawn.energy / spawn.energyCapacity) * 100;
+        if (spawnEnergyPercent < 20) {
             this.creep.memory.destinationId = spawn.id
         } else {
             this.creep.memory.destinationId = this.creep.room.controller.id
@@ -176,6 +179,7 @@ class Harvester extends Worker {
         }
 
         if (this.creep.carry.energy === 0) {
+            this.creep.memory.destinationId = null;
             return true;
         }
         return false;
@@ -185,174 +189,91 @@ class Harvester extends Worker {
 }
 
 
-// Harvester = {
-//     state: {
-//         SPAWNING: "SPAWNING",
-//         MOVING: "MOVING",
-//         HARVESTING: "HARVESTING",
-//         DELIVERING: "DELIVERING",
-//     },
-//     body: [WORK, CARRY, MOVE],
-//     type: CreepType.HARVESTER,
-//
-//     runnable: function (creep) {
-//         // if (creep.memory.state === this.state.SPAWNING) {
-//         //     return false
-//         // }
-//         //
-//         // if (creep.memory.spawnID) {
-//         //     let spawn = Game.getObjectById(creep.memory.spawnID);
-//         //     if (spawn.energy >= spawn.energyCapacity) {
-//         //         return false
-//         //     }
-//         // }
-//         return !creep.spawning
-//     },
-//
-//     run: function (creep) {
-//         if (!creep.memory.state) {
-//             creep.memory.state = this.state.SPAWNING
-//         }
-//
-//         // creep.memory.state = this.state.SPAWNING;
-//
-//         switch (creep.memory.state) {
-//             case this.state.SPAWNING:
-//                 this.spawn(creep);
-//                 break;
-//             case this.state.MOVING:
-//                 this.move(creep);
-//                 break;
-//             case this.state.HARVESTING:
-//                 this.harvest(creep);
-//                 break;
-//             case this.state.DELIVERING:
-//                 this.deliver(creep);
-//                 break;
-//         }
-//
-//     },
-//
-//     spawn: function (creep) {
-//         let sources = creep.room.find(FIND_SOURCES);
-//         let i = Math.floor(Math.random() * sources.length);
-//         creep.memory.sourceId = sources[i].id;
-//         this.changeState(creep, this.state.MOVING)
-//     },
-//
-//     move: function (creep) {
-//         if (!creep.memory.sourceId) {
-//             console.log("No source WTF!")
-//         }
-//
-//         let source = Game.getObjectById(creep.memory.sourceId);
-//
-//         let r = creep.harvest(source);
-//         if (r === ERR_NOT_IN_RANGE) {
-//             creep.moveTo(source);
-//         } else if (r === OK) {
-//             this.changeState(creep, this.state.HARVESTING);
-//             this.harvest(creep);
-//         } else {
-//             console.log("Unkexpected return code: " + r);
-//         }
-//     },
-//
-//     harvest: function (creep) {
-//         let source = Game.getObjectById(creep.memory.sourceId);
-//
-//         if (creep.carry.energy < creep.carryCapacity) {
-//             let r = creep.harvest(source);
-//             if (r === ERR_NOT_IN_RANGE) {
-//                 console.log("Harvest moving to source");
-//                 creep.moveTo(source);
-//             }
-//         } else {
-//             let spawns = creep.room.find(FIND_MY_SPAWNS);
-//
-//             // TODO: Handle multiple spawns
-//             let spawn = spawns[0];
-//
-//
-//             creep.memory.spawnID = spawn.id;
-//
-//             this.changeState(creep, this.state.DELIVERING);
-//         }
-//
-//     },
-//
-//     deliver: function (creep) {
-//         if (!creep.memory.spawnID) {
-//             console.log("No spawnID WTF!")
-//         }
-//
-//         if (creep.carry.energy === 0) {
-//             creep.memory.deliveryTargetID = null;
-//             this.changeState(creep, this.state.MOVING);
-//             return
-//         }
-//
-//
-//         if (!creep.memory.deliveryTargetID) {
-//             let spawn = Game.getObjectById(creep.memory.spawnID);
-//             if (spawn.energy < spawn.energyCapacity) {
-//                 creep.memory.deliveryTargetID = spawn.id
-//             } else {
-//                 creep.memory.deliveryTargetID = creep.room.controller.id
-//             }
-//         }
-//
-//
-//         let deliveryTarget = Game.getObjectById(creep.memory.deliveryTargetID);
-//
-//         if (deliveryTarget instanceof StructureSpawn) {
-//             if (creep.transfer(deliveryTarget, RESOURCE_ENERGY) === ERR_NOT_IN_RANGE) {
-//                 creep.moveTo(deliveryTarget)
-//             }
-//         } else if (deliveryTarget instanceof StructureController) {
-//             if (creep.upgradeController(deliveryTarget) === ERR_NOT_IN_RANGE) {
-//                 creep.moveTo(deliveryTarget)
-//             }
-//         }
-//     },
-//
-//     changeState(creep, target_state) {
-//         // console.log(creep.memory.state + " -> " + target_state);
-//         creep.memory.state = target_state
-//     }
-// };
-
-Builder = {
-    body: [WORK, CARRY, MOVE],
-    type: CreepType.BUILDER,
-
-    runnable: function (creep) {
-        return true;
-    },
-
-    run: function (creep) {
-
-        if (!creep.memory.targetSiteID) {
-            const targetSite = creep.pos.findClosestByPath(FIND_CONSTRUCTION_SITES);
-            let r = creep.build(targetSite);
-            if (r === ERR_NOT_IN_RANGE) {
-                creep.memory.targetSiteID = targetSite.id;
-                creep.moveTo(targetSite)
-            } else {
-                console.log("SHIT: " + r)
-            }
-
-        }
-        // console.log("sites" + constructionStites)
+class Builder extends Worker {
+    constructor(creep) {
+        super(creep)
     }
-};
+
+    static spawnCreep(spawn) {
+        return spawn.createCreep([MOVE, WORK, CARRY], CreepType.BUILDER + Game.time, {type: CreepType.BUILDER})
+    }
+
+    _get_source() {
+        if (!this.creep.memory.spawnId) {
+            let spawns = this.creep.room.find(FIND_MY_SPAWNS);
+            this.creep.memory.spawnId = spawns[0].id;
+        }
+
+        let spawn = Game.getObjectById(this.creep.memory.spawnId);
+        let spawnEnergyPercent = (spawn.energy / spawn.energyCapacity) * 100;
+
+        if (spawnEnergyPercent < 70) {
+            let source = this.creep.pos.findClosestByPath(FIND_SOURCES);
+            this.creep.memory.sourceId = source.id
+        }
+
+        if (this.creep.memory.sourceId) {
+            return Game.getObjectById(this.creep.memory.sourceId)
+        } else {
+            return spawn;
+        }
+    }
+
+    _source_action_complete() {
+        let source = this._get_source();
+        if (source instanceof StructureSpawn) {
+            var r = this.creep.withdraw(source, RESOURCE_ENERGY);
+
+        } else if (source instanceof Source) {
+            var r = this.creep.harvest(source)
+        }
+        if (r === ERR_FULL) {
+            this.creep.sourceId = null;
+            return true
+        }
+        else if (r === ERR_NOT_IN_RANGE) {
+            this.creep.moveTo(source);
+            return false
+        }
+
+        return this.creep.carry.energy >= this.creep.carryCapacity
+    }
+
+    _get_dest() {
+        if (!this.creep.memory.destinationId) {
+            const targetSite = this.creep.pos.findClosestByPath(FIND_CONSTRUCTION_SITES);
+            this.creep.memory.destinationId = targetSite.id;
+        }
+        return Game.getObjectById(this.creep.memory.destinationId)
+    }
+
+    _dest_action_complete() {
+        let dest = this._get_dest();
+        let r = this.creep.build(dest);
+        if (r === ERR_NOT_ENOUGH_ENERGY) {
+            this.creep.memory.destinationId = null;
+            this.creep.memory.sourceId = null;
+            return true;
+        } else if (r === ERR_INVALID_TARGET) {
+            this.creep.memory.destinationId = null;
+            this.creep.memory.sourceId = null;
+            return true
+        } else if (r === ERR_NOT_IN_RANGE) {
+            this.creep.moveTo(dest);
+            return false
+        }
+        return false
+    }
+
+
+}
 
 
 RoomSpec = [
     {
         class: Harvester,
         type: CreepType.HARVESTER,
-        count: 30
+        count: 10
     },
     {
         class: Builder,
@@ -379,7 +300,7 @@ function spawnRoomCreeps() {
                     let to_spwan = spec.count - count;
                     for (let i = 0; i < to_spwan; i++) {
                         let result = spec.class.spawnCreep(spawn);
-                        if (result === 0) {
+                        if (result === OK) {
                             console.log("Spawned: " + spec.class)
                         }
                     }
@@ -399,6 +320,7 @@ function isEmpty(obj) {
 }
 
 function runCreeps() {
+    let creeps = [];
     for (let creep_name in Game.creeps) {
         let creep = Game.creeps[creep_name];
 
@@ -408,19 +330,16 @@ function runCreeps() {
         //     // console.log(x)
         // }
 
-        // creep.suicide()
-        let worker = new Harvester(creep);
-        worker.run()
-
-
-
-        // if (creep.memory.type === CreepType.HARVESTER && Harvester.runnable(creep)) {
-        //     Harvester.run(creep);
-        // } else if (creep.memory.type === CreepType.BUILDER && Builder.runnable(creep)) {
-        //     Builder.run(creep);
-        // } else {
-        //     console.log(creep + " not runnable")
-        // }
+        if (creep.memory.type === CreepType.HARVESTER) {
+            creeps.push(new Harvester(creep));
+        } else if (creep.memory.type === CreepType.BUILDER) {
+            creeps.push(new Builder(creep))
+        }
+    }
+    for (let creep of creeps) {
+        if (creep.runnable()) {
+            creep.run()
+        }
     }
 }
 
