@@ -147,21 +147,58 @@ class HarvesterTask extends WorkerTask {
 
 
     emptying() {
-        if (!this.memory.destinationId) {
+        if (!this.memory.spawnId) {
             let spawns = this.creep.room.find(FIND_MY_SPAWNS);
-            // TODO: Support multiple spawns/destinations
-            this.memory.destinationId = spawns[0].id
+            this.memory.spawnId = spawns[0].id;
         }
 
-        let destination = Game.getObjectById(this.memory.destinationId);
-        let rc = this.creep.transfer(destination, RESOURCE_ENERGY);
-        if (rc === ERR_NOT_IN_RANGE) {
-            this.creep.moveTo(destination);
-        } else if (rc === ERR_FULL) {
-            // TODO: Handle this
-        } else if (this.creep.carry.energy === 0) {
-            this.changeState(this.state.FILLING);
+        if (!this.memory.destinationId) {
+            let container = this.creep.pos.findClosestByPath(FIND_STRUCTURES, {
+                filter: (s) => s.structureType === STRUCTURE_CONTAINER &&
+                    s.energy < s.energyCapacity
+            });
+            if (container) {
+                this.memory.destinationId = container.id
+            }
         }
+
+
+        let spawn = Game.getObjectById(this.memory.spawnId);
+        let spawnEnergyPercent = (spawn.energy / spawn.energyCapacity) * 100;
+        if (spawnEnergyPercent < 90) {
+            this.creep.say("Spawn");
+            this.memory.destinationId = spawn.id
+        } else if (!this.creep.memory.destinationId) {
+            this.creep.say("Controller");
+            this.memory.destinationId = this.creep.room.controller.id
+        }
+
+
+        let deliveryTarget = Game.getObjectById(this.memory.destinationId);
+        if (deliveryTarget instanceof StructureSpawn || deliveryTarget instanceof StructureContainer) {
+            let r = this.creep.transfer(deliveryTarget, RESOURCE_ENERGY);
+            if (r === ERR_FULL) {
+                this.clear();
+                this.changeState(this.state.FILLING)
+            } else if (r === ERR_NOT_IN_RANGE) {
+                this.creep.moveTo(deliveryTarget)
+            }
+        } else if (deliveryTarget instanceof StructureController) {
+            if (this.creep.upgradeController(deliveryTarget) === ERR_NOT_IN_RANGE) {
+                this.creep.moveTo(deliveryTarget)
+            }
+        }
+
+        if (this.creep.carry.energy === 0) {
+            this.clear();
+            this.changeState(this.state.FILLING);
+            return true;
+        }
+    }
+
+    clear() {
+        this.memory.destinationId = null;
+        this.memory.sourceId = null;
     }
 
 
@@ -187,7 +224,7 @@ class BuilderTask extends WorkerTask {
 
         let source = Game.getObjectById(this.memory.sourceId);
         let rc = this.creep.harvest(source, RESOURCE_ENERGY);
-        if(rc === ERR_NOT_IN_RANGE) {
+        if (rc === ERR_NOT_IN_RANGE) {
             this.creep.moveTo(source)
         }
 
@@ -196,6 +233,7 @@ class BuilderTask extends WorkerTask {
         }
 
     }
+
     emptying() {
         if (!this.memory.destinationId) {
             let repairSite = this.creep.pos.findClosestByPath(FIND_STRUCTURES, {
@@ -237,8 +275,8 @@ class BuilderTask extends WorkerTask {
     }
 
     clear() {
-        this.creep.memory.destinationId = null;
-        this.creep.memory.sourceId = null;
+        this.memory.destinationId = null;
+        this.memory.sourceId = null;
     }
 }
 

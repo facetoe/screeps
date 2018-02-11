@@ -5,7 +5,7 @@ const sm = require('spawnManager');
 RoomSpecification = [
     {
         taskType: "HarvesterTask",
-        count: 20
+        count: 10
     },
     {
         taskType: "BuilderTask",
