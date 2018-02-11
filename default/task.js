@@ -87,7 +87,7 @@ class WorkerTask extends Task {
     }
 
     changeState(targetState) {
-        console.log(this.creep.name + " " + this.memory.state + " -> " + targetState);
+        // console.log(this.creep.name + " " + this.memory.state + " -> " + targetState);
         this.memory.state = targetState;
     }
 
@@ -117,17 +117,9 @@ class HarvesterTask extends WorkerTask {
 
     filling() {
         if (!this.memory.sourceId) {
-            let roomCreeps = this.creep.room.find(FIND_MY_CREEPS);
-            let source = this.creep.pos.findClosestByPath(FIND_SOURCES, {
-                filter: (source) => _.sum(roomCreeps, (creep) => source.id === this.memory.sourceId) === 0
-            });
-
-            if (!source) {
-                let sources = this.creep.room.find(FIND_SOURCES);
-                if (sources.length) {
-                    source = _.min(sources, (s) => _.sum(roomCreeps, (c) => s.id === this.memory.sourceId));
-                }
-            }
+            // Pick a random source in the room.
+            let sources = this.creep.room.find(FIND_SOURCES);
+            let source = sources[Math.floor(Math.random() * sources.length)];
             this.memory.sourceId = source.id;
             this.changeState(this.state.FILLING);
         }
@@ -165,40 +157,40 @@ class HarvesterTask extends WorkerTask {
 
         let spawn = Game.getObjectById(this.memory.spawnId);
         let spawnEnergyPercent = (spawn.energy / spawn.energyCapacity) * 100;
-        if (spawnEnergyPercent < 90) {
-            this.creep.say("Spawn");
-            this.memory.destinationId = spawn.id
-        } else if (!this.creep.memory.destinationId) {
-            this.creep.say("Controller");
-            this.memory.destinationId = this.creep.room.controller.id
+        if (!this.memory.destinationId) {
+            if (spawnEnergyPercent < 90) {
+                this.memory.destinationId = spawn.id
+            } else if (!this.creep.memory.destinationId) {
+                this.memory.destinationId = this.creep.room.controller.id
+            }
         }
-
 
         let deliveryTarget = Game.getObjectById(this.memory.destinationId);
         if (deliveryTarget instanceof StructureSpawn || deliveryTarget instanceof StructureContainer) {
+            this.creep.say("Spawn");
             let r = this.creep.transfer(deliveryTarget, RESOURCE_ENERGY);
             if (r === ERR_FULL) {
-                this.clear();
+                // this.clear();
                 this.changeState(this.state.FILLING)
             } else if (r === ERR_NOT_IN_RANGE) {
                 this.creep.moveTo(deliveryTarget)
             }
         } else if (deliveryTarget instanceof StructureController) {
+            this.creep.say("Controller");
             if (this.creep.upgradeController(deliveryTarget) === ERR_NOT_IN_RANGE) {
                 this.creep.moveTo(deliveryTarget)
             }
         }
 
         if (this.creep.carry.energy === 0) {
-            this.clear();
+            // this.clear();
             this.changeState(this.state.FILLING);
-            return true;
         }
     }
 
     clear() {
-        this.memory.destinationId = null;
         this.memory.sourceId = null;
+        this.memory.destinationId = null;
     }
 
 
@@ -249,7 +241,7 @@ class BuilderTask extends WorkerTask {
                 if (targetSite) {
                     this.memory.destinationId = targetSite.id;
                 } else {
-                    console.log("WAT: " + targetSite)
+                    console.log(this.creep + " WAT: " + targetSite)
                 }
             }
         }
