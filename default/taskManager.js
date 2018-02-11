@@ -7,6 +7,13 @@ class TaskManager {
         if (!this.memory.tasks) {
             this.memory.tasks = {}
         }
+        if (!this.memory.runningTasks) {
+            this.memory.runningTasks = {}
+        }
+        if (!this.memory.pendingTasks) {
+            // TODO: make this a priority queue
+            this.memory.pendingTasks = []
+        }
     }
 
 
@@ -32,22 +39,52 @@ class TaskManager {
             }
         }
 
+        this.clearRunningTasks();
         for (let task of runnableTasks) {
             let completed = task.run();
             if (completed) {
                 delete this.memory.tasks[task.executionState.creepId];
+                this.decrementRunningTasks(task.executionState.taskType);
+            } else {
+                this.incrementRunningTasks(task.executionState.taskType);
             }
         }
     }
 
-    submit(task) {
-        console.log("Submitting: " + task + " with type: " + task.executionState.taskType);
-        let taskType = task.executionState.taskType;
-        let creepId = task.executionState.creepId;
-        if (this.memory.tasks[creepId]) {
-            console.log("Updating task: " + taskType.executionState.creepId)
+    getRunningTasks(taskType) {
+        return this.memory.runningTasks[taskType] || 0
+    }
+
+    getRunningTotal() {
+
+    }
+
+    clearRunningTasks() {
+        this.memory.runningTasks = {}
+    }
+
+    incrementRunningTasks(taskType) {
+        if (!this.memory.runningTasks[taskType]) {
+            this.memory.runningTasks[taskType] = 0
         }
-        this.memory.tasks[creepId] = task.executionState;
+        this.memory.runningTasks[taskType] += 1;
+    }
+
+    decrementRunningTasks(taskType) {
+        if (this.memory.runningTasks[taskType]) {
+            this.memory.runningTasks[taskType] -= 1
+        }
+    }
+
+
+    submit(task) {
+        // console.log("Submitting: " + task + " with type: " + task.executionState.taskType);
+        // let taskType = task.executionState.taskType;
+        // let creepId = task.executionState.creepId;
+        // if (this.memory.tasks[creepId]) {
+        //     console.log("Updating task: " + taskType.executionState.creepId)
+        // }
+        // this.memory.tasks[creepId] = task.executionState;
     }
 
     remove(task) {

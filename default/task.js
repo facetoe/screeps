@@ -87,7 +87,6 @@ class HarvesterTask extends Task {
     }
 
     init() {
-        this.changeState(this.state.FILLING);
         let roomCreeps = this.creep.room.find(FIND_MY_CREEPS);
         let source = this.creep.pos.findClosestByPath(FIND_SOURCES, {
             filter: (source) => _.sum(roomCreeps, (creep) => source.id === this.memory.sourceId) === 0
@@ -100,6 +99,7 @@ class HarvesterTask extends Task {
             }
         }
         this.memory.sourceId = source.id;
+        this.changeState(this.state.FILLING);
     }
 
     filling() {
