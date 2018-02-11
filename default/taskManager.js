@@ -23,10 +23,15 @@ class TaskManager {
 
 
     run() {
+        // TODO: this is all horribly inefficient
         let eligibleCreeps = [];
         let runnableTasks = [];
 
+        // var bookCount = Object.keys(this.memory.tasks).length;
+
         for (let creep of this.room.find(FIND_MY_CREEPS)) {
+            // eligibleCreeps.push(creep);
+            // break
             if (!(creep.id in this.memory.tasks || creep.spawning)) {
                 eligibleCreeps.push(creep);
             } else if (creep.id in this.memory.tasks) {
@@ -44,7 +49,6 @@ class TaskManager {
             }
         }
 
-
         this.clearRunningTasks();
         for (let task of runnableTasks) {
             let completed = task.run();
@@ -55,6 +59,17 @@ class TaskManager {
                 this.incrementRunningTasks(task.executionState.taskType);
             }
         }
+
+        // Garbage collection
+        for (let taskId in this.memory.tasks) {
+            var pos = runnableTasks.map(function (x) {
+                return x.creep.id;
+            }).indexOf(taskId);
+            if (pos === -1) {
+                console.log("Cleaning garbage: " + taskId);
+                delete this.memory.tasks[taskId]
+            }
+        }
     }
 
     bindTask(BestTask, creep) {
@@ -63,11 +78,32 @@ class TaskManager {
     }
 
     chooseBestTask(creep) {
-        // TODO: Implement task choosing logic.
-        let tasks = [taskTypes.HarvesterTask, taskTypes.BuilderTask];
-        let task = tasks[Math.floor(Math.random() * tasks.length)];
+        // TODO: FIX ME
+        function shuffle(a) {
+            for (let i = a.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [a[i], a[j]] = [a[j], a[i]];
+            }
+            return a;
+        }
 
-        return new task()
+        let RoomSpecification = [
+            {
+                taskType: "HarvesterTask",
+                count: 5,
+                class: taskTypes.HarvesterTask
+            },
+            {
+                taskType: "BuilderTask",
+                count: 5,
+                class: taskTypes.BuilderTask
+            },
+        ];
+        // TODO: Implement task choosing logic.
+        for (let spec of shuffle(RoomSpecification)) {
+            return new spec.class()
+        }
+        // return task
     }
 
     getRunningTasks(taskType) {

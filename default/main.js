@@ -6,7 +6,7 @@ module.exports.loop = function () {
         let controller = new rc.RoomController(Game.rooms[room]);
         controller.run();
     }
-    // console.log(Game.cpu.getUsed(), Game.cpu.tickLimit)
+    // console.log((Game.cpu.getUsed() /  Game.cpu.tickLimit) * 100)
 
 };
 

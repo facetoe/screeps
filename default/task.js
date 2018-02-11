@@ -141,36 +141,40 @@ class HarvesterTask extends WorkerTask {
     emptying() {
         if (!this.memory.spawnId) {
             let spawns = this.creep.room.find(FIND_MY_SPAWNS);
+            if (spawns.length === 0) {
+                return
+            }
             this.memory.spawnId = spawns[0].id;
         }
 
         if (!this.memory.destinationId) {
             let container = this.creep.pos.findClosestByPath(FIND_STRUCTURES, {
                 filter: (s) => s.structureType === STRUCTURE_CONTAINER &&
-                    s.energy < s.energyCapacity
+                    s.store.energy < s.storeCapacity
             });
             if (container) {
                 this.memory.destinationId = container.id
             }
         }
 
-
-        let spawn = Game.getObjectById(this.memory.spawnId);
-        let spawnEnergyPercent = (spawn.energy / spawn.energyCapacity) * 100;
-        if (!this.memory.destinationId) {
-            if (spawnEnergyPercent < 90) {
+        // FIX ME FUCK
+        if (Math.floor(Math.random() * Math.floor(600)) === 1) {
+            let spawn = Game.getObjectById(this.memory.spawnId);
+            let spawnEnergyPercent = (spawn.energy / spawn.energyCapacity) * 100;
+            if (spawnEnergyPercent < 50) {
                 this.memory.destinationId = spawn.id
             } else if (!this.creep.memory.destinationId) {
                 this.memory.destinationId = this.creep.room.controller.id
             }
         }
 
+
         let deliveryTarget = Game.getObjectById(this.memory.destinationId);
         if (deliveryTarget instanceof StructureSpawn || deliveryTarget instanceof StructureContainer) {
             this.creep.say("Spawn");
             let r = this.creep.transfer(deliveryTarget, RESOURCE_ENERGY);
             if (r === ERR_FULL) {
-                // this.clear();
+                this.clear();
                 this.changeState(this.state.FILLING)
             } else if (r === ERR_NOT_IN_RANGE) {
                 this.creep.moveTo(deliveryTarget)
@@ -189,7 +193,6 @@ class HarvesterTask extends WorkerTask {
     }
 
     clear() {
-        this.memory.sourceId = null;
         this.memory.destinationId = null;
     }
 
@@ -208,14 +211,30 @@ class BuilderTask extends WorkerTask {
 
     filling() {
         if (!this.memory.sourceId) {
-            // Pick a random source in the room.
-            let sources = this.creep.room.find(FIND_SOURCES);
-            let source = sources[Math.floor(Math.random() * sources.length)];
-            this.memory.sourceId = source.id;
+            let containers = this.creep.room.find(FIND_STRUCTURES, {
+                filter: (s) => s.structureType === STRUCTURE_CONTAINER &&
+                    (s.store.energy / s.storeCapacity) * 100 > 10
+            });
+
+            let source = containers[Math.floor(Math.random() * containers.length)];
+            if (source) {
+                this.memory.sourceId = source.id;
+            } else {
+                let sources = this.creep.room.find(FIND_SOURCES);
+                let source = sources[Math.floor(Math.random() * sources.length)];
+                if(source) {
+                    this.memory.sourceId = source.id;
+                } else {
+                    this.memory.sourceId = source.id = null;
+                }
+            }
         }
 
         let source = Game.getObjectById(this.memory.sourceId);
         let rc = this.creep.harvest(source, RESOURCE_ENERGY);
+        if (rc === ERR_INVALID_TARGET) {
+            rc = this.creep.withdraw(source, RESOURCE_ENERGY)
+        }
         if (rc === ERR_NOT_IN_RANGE) {
             this.creep.moveTo(source)
         }
@@ -229,7 +248,7 @@ class BuilderTask extends WorkerTask {
     emptying() {
         if (!this.memory.destinationId) {
             let repairSite = this.creep.pos.findClosestByPath(FIND_STRUCTURES, {
-                filter: (s) => ((s.hits / s.hitsMax) * 100) < 70 && s.structureType !== STRUCTURE_WALL
+                filter: (s) => ((s.hits / s.hitsMax) * 100) < 60 && s.structureType !== STRUCTURE_WALL
             });
 
             if (repairSite) {
@@ -241,7 +260,12 @@ class BuilderTask extends WorkerTask {
                 if (targetSite) {
                     this.memory.destinationId = targetSite.id;
                 } else {
-                    console.log(this.creep + " WAT: " + targetSite)
+                    let sites = this.creep.room.find(FIND_CONSTRUCTION_SITES);
+                    if (sites.length === 0) {
+                        this.creep.say("ILL BE BACK");
+                        console.log(this.creep + " TIME TO DIE: " + sites);
+                        this.creep.suicide();
+                    }
                 }
             }
         }
@@ -269,6 +293,19 @@ class BuilderTask extends WorkerTask {
     clear() {
         this.memory.destinationId = null;
         this.memory.sourceId = null;
+    }
+}
+
+class UpgraderTask extends WorkerTask {
+
+    filling() {
+        if (!this.memory.sources) {
+            let sources = this.creep.room.find(STRUCTURE_CONTAINER, {
+                filter: (s) => s.structureType === STRUCTURE_CONTAINER &&
+                    (s.store.energy / s.storeCapacity) * 100 > 80
+            });
+            console.log(sources)
+        }
     }
 }
 
