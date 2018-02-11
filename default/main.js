@@ -1,3 +1,4 @@
+
 const rc = require('roomController');
 
 module.exports.loop = function () {
@@ -5,4 +6,8 @@ module.exports.loop = function () {
         let controller = new rc.RoomController(Game.rooms[room]);
         controller.run();
     }
+    // console.log(Game.cpu.getUsed(), Game.cpu.tickLimit)
+
 };
+
+

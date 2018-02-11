@@ -171,32 +171,32 @@ class HarvesterTask extends WorkerTask {
 }
 
 
-class BuilderTask extends HarvesterTask {
+class BuilderTask extends WorkerTask {
 
     requiredParts() {
         return [WORK, WORK, MOVE, CARRY]
     }
 
     filling() {
-        console.log("CALLED FI");
         if (!this.memory.sourceId) {
-            let roomCreeps = this.creep.room.find(FIND_MY_CREEPS);
-            let source = this.creep.pos.findClosestByPath(FIND_SOURCES, {
-                filter: (source) => _.sum(roomCreeps, (creep) => source.id === this.memory.sourceId) === 0
-            });
-
-            if (!source) {
-                let sources = this.creep.room.find(FIND_SOURCES);
-                if (sources.length) {
-                    source = _.min(sources, (s) => _.sum(roomCreeps, (c) => s.id === this.memory.sourceId));
-                }
-            }
+            // Pick a random source in the room.
+            let sources = this.creep.room.find(FIND_SOURCES);
+            let source = sources[Math.floor(Math.random() * sources.length)];
             this.memory.sourceId = source.id;
-            this.changeState(this.state.FILLING);
         }
+
+        let source = Game.getObjectById(this.memory.sourceId);
+        let rc = this.creep.harvest(source, RESOURCE_ENERGY);
+        if(rc === ERR_NOT_IN_RANGE) {
+            this.creep.moveTo(source)
+        }
+
+        if (this.creep.carry.energy >= this.creep.carryCapacity) {
+            this.changeState(this.state.EMPTYING)
+        }
+
     }
     emptying() {
-        console.log("CALLED EMP");
         if (!this.memory.destinationId) {
             let repairSite = this.creep.pos.findClosestByPath(FIND_STRUCTURES, {
                 filter: (s) => ((s.hits / s.hitsMax) * 100) < 70 && s.structureType !== STRUCTURE_WALL
@@ -207,6 +207,7 @@ class BuilderTask extends HarvesterTask {
                 this.memory.destinationId = repairSite.id;
             } else {
                 const targetSite = this.creep.pos.findClosestByPath(FIND_CONSTRUCTION_SITES);
+                this.creep.say("Construct");
                 if (targetSite) {
                     this.memory.destinationId = targetSite.id;
                 } else {
@@ -221,20 +222,23 @@ class BuilderTask extends HarvesterTask {
         } else {
             var r = this.creep.repair(dest);
             if (r === OK && dest.hits === dest.hitsMax) {
-                this.creep.memory.destinationId = null;
-                this.creep.say("Done!");
-                this.changeState(this.state.FILLING)
+                this.clear();
+                this.changeState(this.state.FILLING);
+                return
             }
         }
 
         if (r === ERR_NOT_ENOUGH_ENERGY || r === ERR_INVALID_TARGET) {
-            this.creep.memory.destinationId = null;
-            this.creep.memory.sourceId = null;
+            this.clear()
             this.changeState(this.state.FILLING)
         } else if (r === ERR_NOT_IN_RANGE) {
             this.creep.moveTo(dest);
-            return false
         }
+    }
+
+    clear() {
+        this.creep.memory.destinationId = null;
+        this.creep.memory.sourceId = null;
     }
 }
 

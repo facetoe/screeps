@@ -36,7 +36,6 @@ class TaskManager {
             }
         }
 
-
         for (let creep of eligibleCreeps) {
             let BestTask = this.chooseBestTask(creep);
             if (BestTask) {
@@ -44,6 +43,7 @@ class TaskManager {
                 runnableTasks.push(BestTask);
             }
         }
+
 
         this.clearRunningTasks();
         for (let task of runnableTasks) {
@@ -64,15 +64,10 @@ class TaskManager {
 
     chooseBestTask(creep) {
         // TODO: Implement task choosing logic.
-        for (let task of this.memory.pendingTasks) {
-            console.log("Pending: " + task)
+        let tasks = [taskTypes.HarvesterTask, taskTypes.BuilderTask];
+        let task = tasks[Math.floor(Math.random() * tasks.length)];
 
-        }
-
-        // This method returns null if no task is found suitable
-        let harvester = new t.HarvesterTask();
-        let score = harvester.compatibility(creep);
-        return harvester
+        return new task()
     }
 
     getRunningTasks(taskType) {
