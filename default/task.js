@@ -59,7 +59,7 @@ const ExecutionState = function (id, type) {
 };
 
 
-class HarvesterTask extends Task {
+class WorkerTask extends Task {
     constructor(executionState) {
         super(executionState, [WORK, MOVE, CARRY]);
         this.state = {
@@ -69,8 +69,8 @@ class HarvesterTask extends Task {
     }
 
     run() {
-        if (!this.memory.sourceId) {
-            this.init();
+        if (!this.memory.state) {
+            this.changeState(this.state.FILLING)
         }
 
         switch (this.memory.state) {
@@ -86,23 +86,52 @@ class HarvesterTask extends Task {
         return false;
     }
 
-    init() {
-        let roomCreeps = this.creep.room.find(FIND_MY_CREEPS);
-        let source = this.creep.pos.findClosestByPath(FIND_SOURCES, {
-            filter: (source) => _.sum(roomCreeps, (creep) => source.id === this.memory.sourceId) === 0
-        });
-
-        if (!source) {
-            let sources = this.creep.room.find(FIND_SOURCES);
-            if (sources.length) {
-                source = _.min(sources, (s) => _.sum(roomCreeps, (c) => s.id === this.memory.sourceId));
-            }
-        }
-        this.memory.sourceId = source.id;
-        this.changeState(this.state.FILLING);
+    changeState(targetState) {
+        console.log(this.creep.name + " " + this.memory.state + " -> " + targetState);
+        this.memory.state = targetState;
     }
 
     filling() {
+        console.log("IMPLEMENT ME")
+    }
+
+    emptying() {
+        console.log("IMPLEMENT ME")
+    }
+
+    compatibility(creep) {
+        let creepParts = {};
+        for (let part of creep.body) {
+            creepParts[part.type] = null
+        }
+        for (let part of this.requiredParts()) {
+            if (!part in creepParts) {
+                return 0
+            }
+        }
+        return 10
+    }
+}
+
+class HarvesterTask extends WorkerTask {
+
+    filling() {
+        if (!this.memory.sourceId) {
+            let roomCreeps = this.creep.room.find(FIND_MY_CREEPS);
+            let source = this.creep.pos.findClosestByPath(FIND_SOURCES, {
+                filter: (source) => _.sum(roomCreeps, (creep) => source.id === this.memory.sourceId) === 0
+            });
+
+            if (!source) {
+                let sources = this.creep.room.find(FIND_SOURCES);
+                if (sources.length) {
+                    source = _.min(sources, (s) => _.sum(roomCreeps, (c) => s.id === this.memory.sourceId));
+                }
+            }
+            this.memory.sourceId = source.id;
+            this.changeState(this.state.FILLING);
+        }
+
         let source = Game.getObjectById(this.memory.sourceId);
         let rc = this.creep.harvest(source);
         if (rc === ERR_NOT_IN_RANGE) {
@@ -135,30 +164,81 @@ class HarvesterTask extends Task {
         }
     }
 
-    changeState(targetState) {
-        console.log(this.memory.state + " -> " + targetState);
-        this.memory.state = targetState;
-    }
-
 
     requiredParts() {
         return [WORK, CARRY, MOVE]
     }
+}
 
-    compatibility(creep) {
-        let creepParts = {};
-        for (let part of creep.body) {
-            creepParts[part.type] = null
+
+class BuilderTask extends HarvesterTask {
+
+    requiredParts() {
+        return [WORK, WORK, MOVE, CARRY]
+    }
+
+    filling() {
+        console.log("CALLED FI");
+        if (!this.memory.sourceId) {
+            let roomCreeps = this.creep.room.find(FIND_MY_CREEPS);
+            let source = this.creep.pos.findClosestByPath(FIND_SOURCES, {
+                filter: (source) => _.sum(roomCreeps, (creep) => source.id === this.memory.sourceId) === 0
+            });
+
+            if (!source) {
+                let sources = this.creep.room.find(FIND_SOURCES);
+                if (sources.length) {
+                    source = _.min(sources, (s) => _.sum(roomCreeps, (c) => s.id === this.memory.sourceId));
+                }
+            }
+            this.memory.sourceId = source.id;
+            this.changeState(this.state.FILLING);
         }
-        for (let part of this.requiredParts()) {
-            if (!part in creepParts) {
-                return 0
+    }
+    emptying() {
+        console.log("CALLED EMP");
+        if (!this.memory.destinationId) {
+            let repairSite = this.creep.pos.findClosestByPath(FIND_STRUCTURES, {
+                filter: (s) => ((s.hits / s.hitsMax) * 100) < 70 && s.structureType !== STRUCTURE_WALL
+            });
+
+            if (repairSite) {
+                this.creep.say("Repair");
+                this.memory.destinationId = repairSite.id;
+            } else {
+                const targetSite = this.creep.pos.findClosestByPath(FIND_CONSTRUCTION_SITES);
+                if (targetSite) {
+                    this.memory.destinationId = targetSite.id;
+                } else {
+                    console.log("WAT: " + targetSite)
+                }
             }
         }
-        return 10
+
+        let dest = Game.getObjectById(this.memory.destinationId);
+        if (dest instanceof ConstructionSite) {
+            var r = this.creep.build(dest);
+        } else {
+            var r = this.creep.repair(dest);
+            if (r === OK && dest.hits === dest.hitsMax) {
+                this.creep.memory.destinationId = null;
+                this.creep.say("Done!");
+                this.changeState(this.state.FILLING)
+            }
+        }
+
+        if (r === ERR_NOT_ENOUGH_ENERGY || r === ERR_INVALID_TARGET) {
+            this.creep.memory.destinationId = null;
+            this.creep.memory.sourceId = null;
+            this.changeState(this.state.FILLING)
+        } else if (r === ERR_NOT_IN_RANGE) {
+            this.creep.moveTo(dest);
+            return false
+        }
     }
 }
 
 module.exports = {
-    HarvesterTask
+    HarvesterTask,
+    BuilderTask
 };

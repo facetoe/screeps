@@ -1,7 +1,8 @@
 const t = require('task');
 
 const taskTypes = {
-    "HarvesterTask": t.HarvesterTask
+    "HarvesterTask": t.HarvesterTask,
+    "BuilderTask": t.BuilderTask
 };
 
 class TaskManager {
@@ -24,7 +25,6 @@ class TaskManager {
     run() {
         let eligibleCreeps = [];
         let runnableTasks = [];
-
 
         for (let creep of this.room.find(FIND_MY_CREEPS)) {
             if (!(creep.id in this.memory.tasks || creep.spawning)) {

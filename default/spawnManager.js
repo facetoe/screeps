@@ -9,7 +9,6 @@ class SpawnManager {
     }
 
     run() {
-
         // TODO: Refactor this crap
         let creeps = this.room.find(FIND_MY_CREEPS);
         let creepPartCounts = {};
@@ -43,10 +42,6 @@ class SpawnManager {
             }
 
         }
-    }
-
-    reconstructParts(parts) {
-        return parts.split(',')
     }
 }
 
