@@ -35,9 +35,11 @@ class SpawnManager {
         let spawns = this.room.find(FIND_MY_SPAWNS);
         for (let spawn of spawns) {
             let rc = spawn.createCreep(parts);
-            rc = 0;
             // TODO: Handle errors better. Some requests may not be satisfied, might need to have an error callback.
-            if (rc !== ERR_NOT_ENOUGH_ENERGY && rc !== OK) {
+            if (rc === OK) {
+                console.log("Spawned creep with parts: " + parts)
+            }
+            if (rc !== ERR_NOT_ENOUGH_ENERGY && rc !== OK && rc !== ERR_BUSY) {
                 console.log("Spawn Result: " + rc);
             }
 

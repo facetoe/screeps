@@ -2,7 +2,8 @@ const t = require('task');
 
 const taskTypes = {
     "HarvesterTask": t.HarvesterTask,
-    "BuilderTask": t.BuilderTask
+    "BuilderTask": t.BuilderTask,
+    "RepairTask": t.RepairTask
 };
 
 class TaskManager {
@@ -87,21 +88,15 @@ class TaskManager {
             return a;
         }
 
-        let RoomSpecification = [
-            {
-                taskType: "HarvesterTask",
-                count: 5,
-                class: taskTypes.HarvesterTask
-            },
-            {
-                taskType: "BuilderTask",
-                count: 5,
-                class: taskTypes.BuilderTask
-            },
-        ];
-        // TODO: Implement task choosing logic.
-        for (let spec of shuffle(RoomSpecification)) {
-            return new spec.class()
+
+        let fuckDoItProperly = [
+            taskTypes.HarvesterTask, taskTypes.HarvesterTask, taskTypes.HarvesterTask
+            , taskTypes.HarvesterTask, taskTypes.HarvesterTask, taskTypes.HarvesterTask,
+            taskTypes.BuilderTask, taskTypes.BuilderTask,
+            taskTypes.RepairTask, taskTypes.RepairTask];
+        // // TODO: Implement task choosing logic.
+        for (let task of shuffle(fuckDoItProperly)) {
+            return new task()
         }
         // return task
     }
